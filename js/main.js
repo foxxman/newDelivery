@@ -1,13 +1,4 @@
-const cartButton = document.querySelector("#cart-button");
-const modal = document.querySelector(".modal");
-const close = document.querySelector(".close");
-
-cartButton.addEventListener("click", toggleModal);
-close.addEventListener("click", toggleModal);
-
-function toggleModal() {
-  modal.classList.toggle("is-open");
-}
+"use strict";
 
 //day-1 АВТОРИЗАЦИЯ
 
@@ -17,6 +8,10 @@ function toggleModal() {
 
 //let - переменная
 
+const cartButton = document.querySelector("#cart-button");
+const modal = document.querySelector(".modal");
+const close = document.querySelector(".close");
+
 const buttonAuth = document.querySelector(".button-auth"); //кнопка авторизации
 const modalAuth = document.querySelector(".modal-auth"); //модальное окно авторизации
 const closeAuth = document.querySelector(".close-auth"); //кнопка закрытия
@@ -24,6 +19,12 @@ const logInForm = document.querySelector("#logInForm"); //форма для ав
 const loginInput = document.querySelector("#login"); //Логин
 const userName = document.querySelector(".user-name");
 const buttonOut = document.querySelector(".button-out"); //кнопка выхода
+const cardsRestaurants = document.querySelector(".cards-restaurants"); //карточка товара
+const containerPromo = document.querySelector(".container-promo"); //блок с рекламмой
+const restaurants = document.querySelector(".restaurants"); //блок ресторанов, полностью
+const menu = document.querySelector(".menu"); //меню?
+const logo = document.querySelector(".logo");
+const cardsMenu = document.querySelector(".cards-menu");
 
 let login = localStorage.getItem("gloDelivery");
 //console.log(modalAuth);
@@ -35,6 +36,11 @@ let login = localStorage.getItem("gloDelivery");
 //contains проверить, есть ли класс
 //toggle удалить или добавить класс, в зависимости от его наличия
 
+function toggleModal() {
+  modal.classList.toggle("is-open");
+}
+
+//вызов окна авторизации
 function toogleModalAuth() {
   modalAuth.classList.toggle("is-open"); //снять или поставить класс
 }
@@ -116,4 +122,120 @@ function checkAuth() {
   }
 }
 
+//day2
+
+//ф-я создания карточки
+function createCardRestaurant() {
+  //обратные ковычки
+  //копируем код карточки начиная с ссылки, href убираем, тк не будем переходить на др. страницу
+  const card = `
+  <a  class="card card-restaurant">
+  <img src="img/tanuki/preview.jpg" alt="image" class="card-image"/>
+  <div class="card-text">
+    <div class="card-heading">
+      <h3 class="card-title">Тануки</h3>
+      <span class="card-tag tag">60 мин</span>
+    </div>
+    <div class="card-info">
+      <div class="rating">
+        4.5
+      </div>
+      <div class="price">От 1 200 ₽</div>
+      <div class="category">Суши, роллы</div>
+    </div>
+  </div>
+</a>
+ `;
+
+  //вставка вёрстки на страницу
+  //метод insertAdjacentHTML, применяем к "обёртке" карточек
+  //аргументы - *как вставлять* и *что вставлять*
+  //afterbegin с самого начала
+  //afterend после блока
+  //afterbegin
+  //beforeend
+  cardsRestaurants.insertAdjacentHTML("beforeend", card);
+}
+
+function createCardGood() {
+  //в карточки добавляем элемент div
+  const card = document.createElement("div");
+  //навешиваем класс
+  card.className = "card";
+  //вставляем код HTML в карточку (insertAdjacent....)
+  card.insertAdjacentHTML(
+    "beforeend",
+    `
+  <img src="img/pizza-plus/pizza-classic.jpg" alt="image" class="card-image"/>
+						<div class="card-text">
+							<div class="card-heading">
+								<h3 class="card-title card-title-reg">Пицца Классика</h3>
+							</div>
+							<div class="card-info">
+								<div class="ingredients">Соус томатный, сыр «Моцарелла», сыр «Пармезан», ветчина, салями,
+									грибы.
+								</div>
+							</div>
+							<div class="card-buttons">
+								<button class="button button-primary button-add-cart">
+									<span class="button-card-text">В корзину</span>
+									<span class="button-cart-svg"></span>
+								</button>
+								<strong class="card-price-bold">510 ₽</strong>
+							</div>
+						</div>
+  `
+  );
+  //вставляем элемент (insertAdjacent....)
+  cardsMenu.insertAdjacentElement("beforeend", card);
+}
+
+//event - событие, в данном случае клик
+function openGoods(event) {
+  //определяем, куда был клик
+  const target = event.target;
+  //console.log(target);
+
+  //метод closest находит первый из родительских классов с таким селектором
+  const restaurant = target.closest(".card-restaurant");
+
+  //если попали мимо карточки, то restaurant = null
+  if (restaurant) {
+    if (login == null) {
+      toogleModalAuth();
+    } else {
+      //скрываем рестораны и промо, отображаем меню
+      //с помощью добавления или удаления класса hide
+      containerPromo.classList.add("hide");
+      restaurants.classList.add("hide");
+      menu.classList.remove("hide");
+
+      //"очищаем" поле контента, чтобы не было 30 пицц
+      cardsMenu.textContent = "";
+
+      createCardGood();
+      createCardGood();
+      createCardGood();
+    }
+  }
+}
+
+//СОБЫТИЯ
+cartButton.addEventListener("click", toggleModal);
+close.addEventListener("click", toggleModal);
+
+// "прослушки" на карточки и логотип наверху, обработчик событий
+cardsRestaurants.addEventListener("click", openGoods);
+//действия, обратные openGoods, возвращаем все обратно
+logo.addEventListener("click", function () {
+  containerPromo.classList.remove("hide");
+  restaurants.classList.remove("hide");
+  menu.classList.add("hide");
+});
+
+//ВЫЗОВЫ ФУНКЦИЙ
 checkAuth(); //для первой загрузки
+
+createCardRestaurant();
+createCardRestaurant();
+createCardRestaurant();
