@@ -25,16 +25,38 @@ const restaurants = document.querySelector(".restaurants"); //блок рест�
 const menu = document.querySelector(".menu"); //меню?
 const logo = document.querySelector(".logo");
 const cardsMenu = document.querySelector(".cards-menu");
+const sectionHeadingRes = document.querySelector(".section-heading-res");
 
 let login = localStorage.getItem("gloDelivery");
 //console.log(modalAuth);
 //console.dir(modalAuth); //выводит в виде объекта
-
 //вывели свойства объекта, ListName->_proto_ его методы
 // add добавить класс
 //remave удалить класс
 //contains проверить, есть ли класс
 //toggle удалить или добавить класс, в зависимости от его наличия
+
+//асинхронная функция для запроса на сервер
+const getData = async function (url) {
+  const response = await fetch(url);
+  //проверка полученного(пришло или нет)
+  if (!response.ok) {
+    throw new Error(
+      `Ошибка по адресу ${url}, статус ошибка ${response.status}!`
+    );
+  }
+
+  //возврат данных из функции
+  return await response.json();
+
+  //console.log(response);
+};
+
+//обращаемся к файлу партнеров db/partners
+getData("./db/partners.jSon");
+
+//список из ресторанов
+//console.log(getData("./db/partners.jSon"));
 
 function toggleModal() {
   modal.classList.toggle("is-open");
@@ -125,23 +147,47 @@ function checkAuth() {
 //day2
 
 //ф-я создания карточки
-function createCardRestaurant() {
+function createCardRestaurant(restaurant) {
+  // console.log(restaurant.name);
+  //  console.log(restaurant.price);
+  //ДЕСТРУКТИРИЗАЦИЯ
+  const {
+    image,
+    kitchen,
+    name,
+    price,
+    stars,
+    products,
+    time_of_delivery: timeOfDelivery, //заменили имя
+  } = restaurant; //создали отдельные переменные для каждого объекта
+
+  // console.log(image);
+  // console.log(kitchen);
+  // console.log(name);
+  // console.log(price);
+  // console.log(stars);
+  // console.log(products);
+  // console.log(time_of_delivery);
+
   //обратные ковычки
   //копируем код карточки начиная с ссылки, href убираем, тк не будем переходить на др. страницу
+  // ${...} - подгрузка переменной из базы данных
+
+  //data-products="${...}" - сохранение данных
   const card = `
-  <a  class="card card-restaurant">
-  <img src="img/tanuki/preview.jpg" alt="image" class="card-image"/>
+  <a  class="card card-restaurant" data-products="${products}" data-name="${name}" data-stars="${stars}" data-price="${price}" data-kitchen="${kitchen}" >
+  <img src="${image}" alt="image" class="card-image"/> 
   <div class="card-text">
     <div class="card-heading">
-      <h3 class="card-title">Тануки</h3>
-      <span class="card-tag tag">60 мин</span>
+      <h3 class="card-title">${name}</h3>
+      <span class="card-tag tag">${timeOfDelivery} мин</span>
     </div>
     <div class="card-info">
       <div class="rating">
-        4.5
+      ${stars}
       </div>
-      <div class="price">От 1 200 ₽</div>
-      <div class="category">Суши, роллы</div>
+      <div class="price">От ${price} ₽</div>
+      <div class="category">${kitchen}</div>
     </div>
   </div>
 </a>
@@ -157,7 +203,26 @@ function createCardRestaurant() {
   cardsRestaurants.insertAdjacentHTML("beforeend", card);
 }
 
-function createCardGood() {
+function createHeadingRes(name, price, kitchen, stars) {
+  //console.log(price, kitchen, stars);
+
+  const head = `<h2 class="section-title restaurant-title">${name}</h2>
+  <div class="card-info">
+    <div class="rating">
+    ${stars}
+    </div>
+    <div class="price">От ${price} ₽</div>
+    <div class="category">${kitchen}</div>
+  </div>`;
+
+  sectionHeadingRes.insertAdjacentHTML("afterbegin", head);
+}
+
+function createCardGood(goods) {
+  //деструктурируем
+  //console.log(goods);
+  const { description, id, image, name, price } = goods;
+
   //в карточки добавляем элемент div
   const card = document.createElement("div");
   //навешиваем класс
@@ -166,14 +231,13 @@ function createCardGood() {
   card.insertAdjacentHTML(
     "beforeend",
     `
-  <img src="img/pizza-plus/pizza-classic.jpg" alt="image" class="card-image"/>
+  <img src="${image}" alt="image" class="card-image"/>
 						<div class="card-text">
 							<div class="card-heading">
-								<h3 class="card-title card-title-reg">Пицца Классика</h3>
+								<h3 class="card-title card-title-reg">${name}</h3>
 							</div>
 							<div class="card-info">
-								<div class="ingredients">Соус томатный, сыр «Моцарелла», сыр «Пармезан», ветчина, салями,
-									грибы.
+								<div class="ingredients">${description}
 								</div>
 							</div>
 							<div class="card-buttons">
@@ -181,7 +245,7 @@ function createCardGood() {
 									<span class="button-card-text">В корзину</span>
 									<span class="button-cart-svg"></span>
 								</button>
-								<strong class="card-price-bold">510 ₽</strong>
+								<strong class="card-price-bold">${price} ₽</strong>
 							</div>
 						</div>
   `
@@ -201,41 +265,71 @@ function openGoods(event) {
 
   //если попали мимо карточки, то restaurant = null
   if (restaurant) {
+    //если не авторизован, то вызываем окно авторизации
     if (login == null) {
       toogleModalAuth();
     } else {
-      //скрываем рестораны и промо, отображаем меню
+      //dataset содержит все атрибуты, products - то что хотим получить
+      //хранит всегда в кэмлкейсе
+      //console.log(restaurant.dataset.products);
+
+      //скрываем рестораны и промо, отображаем меню  createCardGood();
       //с помощью добавления или удаления класса hide
       containerPromo.classList.add("hide");
       restaurants.classList.add("hide");
       menu.classList.remove("hide");
 
       //"очищаем" поле контента, чтобы не было 30 пицц
+      sectionHeadingRes.textContent = "";
       cardsMenu.textContent = "";
-
-      createCardGood();
-      createCardGood();
-      createCardGood();
+      //создаем карточки
+      createHeadingRes(
+        `${restaurant.dataset.name}`,
+        `${restaurant.dataset.price}`,
+        `${restaurant.dataset.kitchen}`,
+        `${restaurant.dataset.stars}`
+      );
+      //console.log(`${restaurant.dataset.name}, ${restaurant.dataset.price}`);
+      // createHeadingRes(data)
+      getData(`./db/${restaurant.dataset.products}`).then(function (data) {
+        data.forEach(createCardGood);
+      });
     }
   }
 }
 
-//СОБЫТИЯ
-cartButton.addEventListener("click", toggleModal);
-close.addEventListener("click", toggleModal);
+//createCardRestaurant();
+//createCardRestaurant();
+//createCardRestaurant();
 
-// "прослушки" на карточки и логотип наверху, обработчик событий
-cardsRestaurants.addEventListener("click", openGoods);
-//действия, обратные openGoods, возвращаем все обратно
-logo.addEventListener("click", function () {
-  containerPromo.classList.remove("hide");
-  restaurants.classList.remove("hide");
-  menu.classList.add("hide");
-});
+function init() {
+  //обработка данных с помощью метода then
+  //после того, как вернутся данные из getData, они попадут в function(data)
+  //(array)
+  getData("./db/partners.json").then(function (data) {
+    console.log(data);
 
-//ВЫЗОВЫ ФУНКЦИЙ
-checkAuth(); //для первой загрузки
+    //метод forEach запускает цикл на количество элементов в массиве
+    //каждый объект передан в createCardRestaurant
+    data.forEach(createCardRestaurant);
+  });
 
-createCardRestaurant();
-createCardRestaurant();
-createCardRestaurant();
+  //СОБЫТИЯ
+  cartButton.addEventListener("click", toggleModal);
+  close.addEventListener("click", toggleModal);
+
+  // "прослушки" на карточки и логотип наверху, обработчик событий
+  cardsRestaurants.addEventListener("click", openGoods);
+  //действия, обратные openGoods, возвращаем все обратно
+  logo.addEventListener("click", function () {
+    containerPromo.classList.remove("hide");
+    restaurants.classList.remove("hide");
+    menu.classList.add("hide");
+  });
+
+  //ВЫЗОВЫ ФУНКЦИЙ
+  checkAuth(); //для первой загрузки
+}
+
+//функция для вызова всех событий и "прослушек"
+init();
