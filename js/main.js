@@ -26,8 +26,12 @@ const menu = document.querySelector(".menu"); //меню?
 const logo = document.querySelector(".logo");
 const cardsMenu = document.querySelector(".cards-menu");
 const sectionHeadingRes = document.querySelector(".section-heading-res");
+const modalBody = document.querySelector(".modal-body");
+const modalPrice = document.querySelector(".modal-pricetag");
+const buttonClearCart = document.querySelector(".clear-cart");
 
 let login = localStorage.getItem("gloDelivery");
+
 //console.log(modalAuth);
 //console.dir(modalAuth); //выводит в виде объекта
 //вывели свойства объекта, ListName->_proto_ его методы
@@ -35,6 +39,13 @@ let login = localStorage.getItem("gloDelivery");
 //remave удалить класс
 //contains проверить, есть ли класс
 //toggle удалить или добавить класс, в зависимости от его наличия
+
+//массив для корзины и функции его сохранения
+const cart = JSON.parse(localStorage.getItem("gloDeliveryCart")) || [];
+console.log(cart);
+const saveCart = function () {
+  localStorage.setItem("gloDeliveryCart", JSON.stringify(cart));
+};
 
 //асинхронная функция для запроса на сервер
 const getData = async function (url) {
@@ -104,7 +115,7 @@ function logOut(event) {
   buttonAuth.style.display = "";
   userName.style.display = "";
   buttonOut.style.display = "";
-
+  cartButton.style.display = "";
   buttonOut.removeEventListener("click", logOut);
 
   checkAuth();
@@ -118,8 +129,8 @@ function autorized() {
   //обращаемся напрямую к свойству класса, чтобы кнопка исчезла
   buttonAuth.style.display = "none";
   userName.style.display = "inline"; //исп. inline, тк блок span
-  buttonOut.style.display = "block";
-
+  buttonOut.style.display = "flex";
+  cartButton.style.display = "flex"; //отображение корзины
   buttonOut.addEventListener("click", logOut);
 }
 
@@ -218,15 +229,16 @@ function createHeadingRes(name, price, kitchen, stars) {
   sectionHeadingRes.insertAdjacentHTML("afterbegin", head);
 }
 
-function createCardGood(goods) {
+function createCardGood({ description, id, image, name, price }) {
   //деструктурируем
   //console.log(goods);
-  const { description, id, image, name, price } = goods;
+  //const { description, id, image, name, price } = goods;
 
   //в карточки добавляем элемент div
   const card = document.createElement("div");
   //навешиваем класс
   card.className = "card";
+  //card.id=id;
   //вставляем код HTML в карточку (insertAdjacent....)
   card.insertAdjacentHTML(
     "beforeend",
@@ -241,13 +253,13 @@ function createCardGood(goods) {
 								</div>
 							</div>
 							<div class="card-buttons">
-								<button class="button button-primary button-add-cart">
+								<button class="button button-primary button-add-cart" id="${id}">
 									<span class="button-card-text">В корзину</span>
 									<span class="button-cart-svg"></span>
 								</button>
-								<strong class="card-price-bold">${price} ₽</strong>
+								<strong class="card-price card-price-bold">${price} ₽</strong>
 							</div>
-						</div>
+						</div> 
   `
   );
   //вставляем элемент (insertAdjacent....)
@@ -302,20 +314,118 @@ function openGoods(event) {
 //createCardRestaurant();
 //createCardRestaurant();
 
+function addToCart(event) {
+  const target = event.target;
+  //метод closests
+  const buttonAddToCart = target.closest(".button-add-cart");
+  if (buttonAddToCart) {
+    const card = target.closest(".card");
+    //textContent - доступ к тексту блока
+    const title = card.querySelector(".card-title-reg").textContent;
+    const cost = card.querySelector(".card-price").textContent;
+    const id = buttonAddToCart.id;
+    // console.log(title, cost, id);
+
+    // find - ищет в массиве элемент по какому-то совпадению
+    const food = cart.find(function (item) {
+      return item.id === id;
+    });
+
+    //счетчик еды, сколько добавили
+    if (food) {
+      //если уже лежит в корзине
+      food.count += 1;
+    } else {
+      //если кликнули в первый раз
+      cart.push({
+        //id: id, если совпадают, можно просто через запятую
+        id,
+        title,
+        cost,
+        count: 1, //количество
+      });
+      saveCart();
+    }
+
+    console.log(food);
+    //пушим(добавляяем) внутрь cart(объявлен в начале) объект {}
+
+    //  console.log(cart);
+  }
+}
+//
+function renderCart() {
+  modalBody.textContent = ""; //очистка корзины
+
+  cart.forEach(function ({ id, title, cost, count }) {
+    const itemCart = `<div class="food-row">
+    <span class="food-name">${title}</span>
+    <strong class="food-price">${cost}</strong>
+    <div class="food-counter">
+      <button class="counter-button counter-minus"  data-id=${id}>-</button>
+      <span class="counter">${count}</span>
+      <button class="counter-button counter-plus"  data-id=${id}>+</button>
+    </div>
+  </div>`;
+
+    modalBody.insertAdjacentHTML("afterbegin", itemCart);
+  });
+
+  const totalPrice = cart.reduce(function (result, item) {
+    //parseFloat выцепляет первое число из строки
+    return result + parseFloat(item.cost) * item.count;
+  }, 0);
+
+  modalPrice.textContent = totalPrice + "₽";
+}
+
+function changeCount(event) {
+  const target = event.target;
+
+  if (target.classList.contains("counter-button")) {
+    const food = cart.find(function (item) {
+      return item.id === target.dataset.id;
+    });
+    if (target.classList.contains("counter-minus")) {
+      food.count--;
+      if (food.count === 0) {
+        //splice(индекс удаляемого элемента, сколько элементов удалить)
+        //indexOf определяет индекс элемента
+        cart.splice(cart.indexOf(food), 1);
+      }
+    }
+    if (target.classList.contains("counter-plus")) food.count++;
+    renderCart();
+  }
+  saveCart;
+}
+
 function init() {
   //обработка данных с помощью метода then
   //после того, как вернутся данные из getData, они попадут в function(data)
   //(array)
   getData("./db/partners.json").then(function (data) {
-    console.log(data);
+    //console.log(data);
 
     //метод forEach запускает цикл на количество элементов в массиве
     //каждый объект передан в createCardRestaurant
     data.forEach(createCardRestaurant);
   });
 
+  //очистка корзины
+  buttonClearCart.addEventListener("click", function () {
+    cart.length = 0;
+    renderCart();
+  });
   //СОБЫТИЯ
-  cartButton.addEventListener("click", toggleModal);
+  cartButton.addEventListener("click", function () {
+    renderCart();
+    toggleModal();
+  });
+
+  modalBody.addEventListener("click", changeCount);
+
+  cardsMenu.addEventListener("click", addToCart);
   close.addEventListener("click", toggleModal);
 
   // "прослушки" на карточки и логотип наверху, обработчик событий
