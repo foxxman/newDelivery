@@ -53,7 +53,7 @@ const getData = async function (url) {
 };
 
 //обращаемся к файлу партнеров db/partners
-getData("./db/partners.jSon");
+getData("./db/partners.json");
 
 //список из ресторанов
 //console.log(getData("./db/partners.jSon"));
